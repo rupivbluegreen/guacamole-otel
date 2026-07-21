@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/rupivbluegreen/guacamole-otel/blob/main/SECURITY.md
+    about: Do NOT open a public issue for vulnerabilities. Report them privately via GitHub Security Advisories as described in SECURITY.md.
+  - name: Questions & discussion
+    url: https://github.com/rupivbluegreen/guacamole-otel/discussions
+    about: Ask usage questions, share ideas, or discuss the roadmap in GitHub Discussions.

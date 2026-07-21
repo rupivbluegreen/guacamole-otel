@@ -1,0 +1,57 @@
+# EditorConfig — https://editorconfig.org
+# Shared editor defaults for the guacamole-otel repo (Java + Go + YAML/JSON + docs).
+# Governs charset, line endings, final newline, and indentation so contributor
+# editors do not drift and diffs stay free of whitespace churn.
+root = true
+
+# Baseline for every file.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Java sources (built at maven.compiler.release=8) — 4-space indent.
+[*.java]
+indent_style = space
+indent_size = 4
+
+# Go — gofmt mandates tabs; width is a display hint only.
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[{go.mod,go.sum}]
+indent_style = tab
+
+# YAML: collector configs, packaging manifests, GitHub workflows.
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.json]
+indent_style = space
+indent_size = 2
+
+# Maven POM and other XML.
+[*.xml]
+indent_style = space
+indent_size = 2
+
+# Shell scripts (e.g. itest/run-correlation-test.sh).
+[*.sh]
+indent_style = space
+indent_size = 2
+
+# SQL init scripts.
+[*.sql]
+indent_style = space
+indent_size = 2
+
+# Markdown — keep trailing whitespace (two trailing spaces are a hard line break).
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2

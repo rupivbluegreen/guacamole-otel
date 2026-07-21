@@ -1,0 +1,59 @@
+# Configuration for GitHub's "Generate release notes" button.
+# This only shapes the text of manually-generated release notes; it does not
+# publish, tag, or release anything on its own (G10). Categories are keyed on
+# PR labels that mirror the project's Conventional-Commit prefixes
+# (feat / fix / docs / test / build / ci / chore).
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - duplicate
+      - invalid
+      - wontfix
+      - question
+  categories:
+    - title: ⚠️ Breaking Changes
+      labels:
+        - breaking-change
+        - breaking
+    - title: 🚀 Features (feat)
+      labels:
+        - enhancement
+        - feature
+        - feat
+    - title: 🐛 Bug Fixes (fix)
+      labels:
+        - bug
+        - fix
+    - title: 🔒 Security
+      labels:
+        - security
+    - title: 📊 Dashboards & Observability
+      labels:
+        - dashboards
+        - metrics
+    - title: 📝 Documentation (docs)
+      labels:
+        - documentation
+        - docs
+    - title: 🧪 Tests (test)
+      labels:
+        - test
+        - tests
+    - title: 📦 Build & Packaging (build)
+      labels:
+        - build
+        - packaging
+    - title: 👷 CI & Tooling (ci)
+      labels:
+        - ci
+    - title: 🧹 Maintenance (chore)
+      labels:
+        - chore
+        - refactor
+    - title: ⬆️ Dependency Updates
+      labels:
+        - dependencies
+    - title: Other Changes
+      labels:
+        - "*"

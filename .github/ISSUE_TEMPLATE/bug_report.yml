@@ -1,0 +1,119 @@
+name: Bug report
+description: Report a defect in the extension, collector bundle, receiver, or packaging.
+title: "bug: <short summary>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in the fields below —
+        the component and version are what let us reproduce the problem quickly.
+
+        This is an independent observability project and is **not affiliated with or
+        endorsed by the Apache Software Foundation** or the OpenTelemetry project.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I searched existing issues and this has not already been reported.
+          required: true
+        - label: This is **not** a security vulnerability. Vulnerabilities must be reported privately via GitHub Security Advisories — see [SECURITY.md](../blob/main/SECURITY.md), not a public issue.
+          required: true
+        - label: This report contains no credentials, tokens, or personal access metadata (usernames, source addresses, connection names) in the logs I paste below.
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the project does this bug affect?
+      options:
+        - extension (Java guacamole-ext listener)
+        - collector (OpenTelemetry Collector config bundle + systemd unit)
+        - receiver (guacamolereceiver Go scraper)
+        - packaging (RPM / Docker / OpenShift / Kubernetes)
+        - dashboards (Grafana JSON)
+        - itest (integration test)
+        - docs
+        - Not sure / other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Project version
+      description: Release tag, RPM/Docker image tag, or Go module version. Use the commit SHA if building from source.
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How is it installed?
+      options:
+        - RPM (RHEL9 / VM / bare metal) + systemd collector
+        - Docker (instrumented image and/or collector image)
+        - OpenShift / Kubernetes manifests
+        - Built from source (mvn / go build)
+        - Other / not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the actual behaviour.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps. Include the Guacamole action taken (login, session start/stop, etc.) and where the telemetry was (or was not) observed.
+      placeholder: |
+        1. Deploy the extension jar + OTel agent on Tomcat
+        2. Start an RDP session in Guacamole
+        3. Observe the collector / backend
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or telemetry
+      description: Collector logs, Tomcat/catalina logs, or exported spans/metrics. This is automatically formatted as code, so no backticks needed. Redact any access metadata.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Versions and platform details that help us reproduce.
+      value: |
+        - Apache Guacamole version:
+        - OpenTelemetry Java agent version:
+        - OpenTelemetry Collector (contrib) version:
+        - Go version (receiver only):
+        - OS / platform (RHEL9, container, OpenShift, ...):
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else — screenshots, dashboard exports, related issues.

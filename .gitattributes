@@ -1,0 +1,44 @@
+# Git attributes for guacamole-otel.
+# Normalise line endings on commit so a Windows checkout can never introduce
+# CRLF into sources or shell scripts, and tell GitHub Linguist how to treat
+# generated and binary files.
+
+# Default: treat everything as text and normalise to LF in the repository.
+* text=auto eol=lf
+
+# --- Explicit text types (LF enforced) --------------------------------------
+*.java      text eol=lf
+*.go        text eol=lf
+*.mod       text eol=lf
+*.sum       text eol=lf
+*.xml       text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.sql       text eol=lf
+*.env       text eol=lf
+*.service   text eol=lf
+*.txt       text eol=lf
+Dockerfile* text eol=lf
+
+# Shell scripts MUST stay LF — CRLF breaks the shebang and the license-header
+# check in itest/run-correlation-test.sh.
+*.sh        text eol=lf
+
+# --- Binary (never diffed, never EOL-normalised) ----------------------------
+*.rpm       binary
+*.jar       binary
+*.tar.gz    binary
+*.png       binary
+*.jpg       binary
+*.gif       binary
+*.ico       binary
+
+# --- Language stats / diff hints (GitHub Linguist) --------------------------
+# Append-only verification log — collapse in diffs, exclude from language stats.
+docs/VERIFIED.md                    linguist-generated=true
+# Generated Go dependency lockfile.
+receiver/guacamolereceiver/go.sum   linguist-generated=true
+# Grafana dashboard export (machine-generated JSON).
+dashboards/*.json                   linguist-generated=true

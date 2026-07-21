@@ -1,0 +1,73 @@
+name: Feature request
+description: Suggest a capability or improvement for the extension, collector, receiver, or packaging.
+title: "feat: <short summary>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Please describe the problem first,
+        then a proposed solution.
+
+        **Scope note:** this project instruments Guacamole only through the supported
+        `guacamole-ext` Listener API and stock OpenTelemetry Collector components.
+        Requests that intercept or filter the Guacamole protocol stream, patch guacd,
+        or fork guacamole-client are out of scope by design — see
+        [`docs/SPEC.md`](../blob/main/docs/SPEC.md) §16 for why the instruction-filter
+        extension point is deliberately unbuilt. This is an independent project, **not
+        affiliated with or endorsed by the Apache Software Foundation**.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I searched existing issues and this has not already been requested.
+          required: true
+        - label: This request keeps instrumentation on the supported guacamole-ext / stock OTel path (no protocol interception, no guacd patching, no guacamole-client fork).
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the project would this change?
+      options:
+        - extension (Java guacamole-ext listener)
+        - collector (OpenTelemetry Collector config bundle + systemd unit)
+        - receiver (guacamolereceiver Go scraper)
+        - packaging (RPM / Docker / OpenShift / Kubernetes)
+        - dashboards (Grafana JSON)
+        - itest (integration test)
+        - docs
+        - Not sure / other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What are you trying to observe or do that you can't today? What's the impact?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behaviour you'd like. For new attributes or metrics, note the expected cardinality (tunnel UUIDs, connection names, and client addresses belong on spans/logs, never on metric dimensions).
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you weighed, or existing workarounds.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Backend, compliance driver (NIS2 / DORA / ISO 27001), links, or examples.

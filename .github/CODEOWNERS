@@ -1,0 +1,37 @@
+# CODEOWNERS for guacamole-otel
+#
+# Routes review to the accountable maintainer(s). See MAINTAINERS.md and
+# GOVERNANCE.md. Syntax: https://docs.github.com/articles/about-code-owners
+# The last matching pattern for a given path takes precedence.
+
+# Default owner for everything in the repository.
+*                                   @rupivbluegreen
+
+# --- Per-area owners -------------------------------------------------------
+# Consolidated under the single maintainer today; per-area lines are kept so
+# additional maintainers can be onboarded by area without restructuring.
+
+/extension/                         @rupivbluegreen
+/collector/                         @rupivbluegreen
+/receiver/                          @rupivbluegreen
+/packaging/                         @rupivbluegreen
+/dashboards/                        @rupivbluegreen
+/itest/                             @rupivbluegreen
+/docs/                              @rupivbluegreen
+
+# --- Governance & CI (mandatory maintainer review) -------------------------
+/.github/                           @rupivbluegreen
+/.github/CODEOWNERS                 @rupivbluegreen
+/CODE_OF_CONDUCT.md                 @rupivbluegreen
+/GOVERNANCE.md                      @rupivbluegreen
+/MAINTAINERS.md                     @rupivbluegreen
+/SECURITY.md                        @rupivbluegreen
+/CONTRIBUTING.md                    @rupivbluegreen
+/LICENSE                            @rupivbluegreen
+/NOTICE                             @rupivbluegreen
+
+# --- Change-sensitive source (guardrails; review the exact diff) -----------
+# The listener must never throw (G1) — the handleEvent exception envelope.
+/extension/src/main/java/org/apache/guacamole/otel/OtelListener.java   @rupivbluegreen
+# No credentials in telemetry; strict attribute allowlist (G3/G4).
+/extension/src/main/java/org/apache/guacamole/otel/Attributes.java     @rupivbluegreen

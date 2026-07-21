@@ -1,5 +1,7 @@
 # guacamole-otel
 
+[![CI](https://github.com/rupivbluegreen/guacamole-otel/actions/workflows/ci.yml/badge.svg)](https://github.com/rupivbluegreen/guacamole-otel/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/rupivbluegreen/guacamole-otel/releases) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/rupivbluegreen/guacamole-otel/badge)](https://scorecard.dev/viewer/?uri=github.com/rupivbluegreen/guacamole-otel) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 **See who connects to what, for how long, and whether logins succeed — for [Apache Guacamole](https://guacamole.apache.org/), with zero changes to Guacamole itself.**
 
 Guacamole is a great clientless remote-desktop gateway, but out of the box it tells
@@ -56,6 +58,24 @@ Our plugin listens to Guacamole's built-in event hooks and reports what it sees.
 The OpenTelemetry Java agent (which you're probably already able to add to Tomcat)
 provides the plumbing; our plugin just rides on it.
 
+Prefer a pull-based active-connection metric instead of (or alongside) the plugin?
+There's an optional stock-component Collector **receiver** in
+[`receiver/guacamolereceiver/`](receiver/guacamolereceiver/) that scrapes the
+Guacamole REST API.
+
+## Performance
+
+The plugin is effectively free — it runs in **microseconds** per event and adds
+**no measurable login latency**, and a telemetry-backend outage can never affect a
+Guacamole login or session. Measured numbers + methodology: **[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)**.
+
+| | |
+|---|---|
+| Per-event overhead | p50 ≈ 5 µs · p99 ≈ 20 µs (budget was < 1 ms) |
+| Added login latency | none measurable (login is bcrypt-bound at ~25 ms) |
+| Metric cardinality | bounded — independent of session count |
+| Footprint | 234 KB jar + a hard-bounded in-memory registry |
+
 ## Quickstart (Docker)
 
 The fastest way to try it — a Guacamole image with the plugin + agent baked in:
@@ -101,10 +121,11 @@ Privacy details and pseudonymisation: [`docs/PRIVACY.md`](docs/PRIVACY.md).
 |---|---|
 | `extension/` | the Java plugin (guacamole-ext listener) + tests |
 | `collector/` | OpenTelemetry Collector config + systemd unit |
+| `receiver/` | optional Go collector-contrib receiver — pull-based active-connection metrics ([`receiver/guacamolereceiver/`](receiver/guacamolereceiver/)) |
 | `packaging/` | RPM (nfpm), Docker, OpenShift/Kubernetes |
 | `dashboards/` | Grafana starter dashboard |
 | `itest/` | docker-compose integration test (correlation + failure injection) |
-| `docs/` | design (`SPEC.md`), install, privacy, and the verification log (`VERIFIED.md`) |
+| `docs/` | design (`SPEC.md`), install, privacy, [performance](docs/PERFORMANCE.md), and the verification log (`VERIFIED.md`) |
 
 ## Building from source
 

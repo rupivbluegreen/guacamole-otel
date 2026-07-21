@@ -1,0 +1,50 @@
+# golangci-lint configuration for the Guacamole scraper receiver.
+#
+# Mirrors the linter set opentelemetry-collector-contrib expects so this module
+# can be upstreamed without style churn. Uses the golangci-lint v2 schema.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # Default set (errcheck, govet, ineffassign, staticcheck, unused) made
+  # explicit, plus revive for style/lint rules.
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - revive
+    - staticcheck
+    - unused
+  settings:
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: if-return
+        - name: package-comments
+        - name: redefines-builtin-id
+        - name: unreachable-code
+        - name: var-declaration
+  exclusions:
+    generated: lax
+    rules:
+      # Test files may skip error checks on cleanup/teardown helpers.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  # gofmt/goimports are formatters (not linters) in golangci-lint v2.
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/guacamole-otel/guacamolereceiver
