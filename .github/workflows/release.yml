@@ -21,8 +21,8 @@ jobs:
   build-artifacts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: "17", cache: maven }
 
       - name: Build extension jar
@@ -37,7 +37,7 @@ jobs:
             goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
 
       - name: Upload build artifacts (NOT a release)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guacamole-otel-${{ inputs.version }}
           path: |

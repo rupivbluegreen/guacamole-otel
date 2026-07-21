@@ -8,6 +8,14 @@ updates:
     groups:
       opentelemetry:
         patterns: ["io.opentelemetry*"]
+    ignore:
+      # The shaded opentelemetry-api must stay within the range the deployed OTel
+      # Java agent bridges. VERIFIED 2026-07-21: bumping the BOM ahead of the agent
+      # (e.g. 1.43 -> 1.64 vs agent 2.29) silently disables the extension —
+      # GlobalOpenTelemetry.get() returns a no-op, no error, no telemetry. Only bump
+      # in lockstep with an agent upgrade; allow patch releases only.
+      - dependency-name: "io.opentelemetry:opentelemetry-bom"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   # GitHub Actions (keeps pinned action SHAs current).
   - package-ecosystem: github-actions
@@ -18,6 +26,11 @@ updates:
   - package-ecosystem: docker
     directory: /packaging/docker
     schedule: { interval: weekly }
+    ignore:
+      # Keep the build-stage JDK on an LTS (17/21); we emit release-8 bytecode and
+      # gain nothing from bleeding-edge non-LTS JDKs.
+      - dependency-name: "maven"
+        versions: [">=22"]
 
   # Go collector receiver (Phase 5).
   - package-ecosystem: gomod

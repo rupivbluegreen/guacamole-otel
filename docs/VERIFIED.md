@@ -338,3 +338,18 @@ Evidence:
 Consequence: the acceptance property holds — a telemetry backend failure never affects
   Guacamole login or session availability. The v0.1.0 tag + GitHub release remain
   **gated on human approval (G10)** and were not performed.
+
+## 2026-07-21 — otel-api ↔ agent bridge version coupling (Dependabot #5)
+Finding: the shaded `opentelemetry-api` version must stay within the range the
+  deployed OTel Java **agent** bridges. Bumping the `opentelemetry-bom` 1.43.0 → 1.64.0
+  against agent 2.29.0 **silently disables the extension**: `GlobalOpenTelemetry.get()`
+  resolves to a no-op (not the agent bridge), so spans/metrics/logs are dropped — with
+  **no error** and **green unit tests/CI** (tests use a real SDK, not the agent bridge).
+Evidence: extension rebuilt at otel 1.64, deployed to the itest stack. The collector
+  received the agent's own `jvm.*` metrics (OTLP transport fine) but **zero
+  `guacamole.*`** telemetry; no `NoClassDefFoundError`, no suppressed-error logs. At
+  1.43 (Gate P1/P2 runs) the same path emitted the full session span + auth/session logs.
+Consequence: `opentelemetry-bom` minor/major bumps are ignored in `dependabot.yml`
+  (patch-only); bump `opentelemetry-api` only in lockstep with an agent upgrade. The
+  live agent-bridge boot is a required check for any OTel version change — unit tests
+  cannot catch this.

@@ -6,8 +6,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: "17", cache: maven }
       # mvn verify also runs the license-header check (mycila license-maven-plugin).
       - name: Build and test
@@ -21,7 +21,7 @@ jobs:
   dco:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       # Inline DCO check (the tim-actions/dco action errors on current runners).
       # SHAs come via env — never interpolated into the shell (injection-safe).
@@ -50,8 +50,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: "17", cache: maven }
       - name: Build extension jar
         run: mvn -q -f extension/pom.xml -DskipTests package
@@ -66,7 +66,7 @@ jobs:
           docker run --rm -e VERSION="$VERSION" -v "$PWD":/work -w /work/packaging \
             goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guacamole-otel-packages
           path: |

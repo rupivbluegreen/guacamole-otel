@@ -9,7 +9,7 @@
 # Runtime config is standard OTEL_* env — at minimum set OTEL_EXPORTER_OTLP_ENDPOINT.
 
 # --- stage 1: build the extension jar ---
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /src
 COPY extension/pom.xml ./pom.xml
 # warm the dependency cache
@@ -18,7 +18,7 @@ COPY extension/src ./src
 RUN mvn -q -B package && cp target/guacamole-otel-extension.jar /guacamole-otel-extension.jar
 
 # --- stage 2: fetch the OpenTelemetry Java agent (pinned) ---
-FROM curlimages/curl:8.10.1 AS agent
+FROM curlimages/curl:8.21.0 AS agent
 ARG OTEL_AGENT_VERSION=2.29.0
 RUN curl -sSL -o /tmp/opentelemetry-javaagent.jar \
     "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar"
