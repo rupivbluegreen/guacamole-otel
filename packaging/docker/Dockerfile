@@ -9,7 +9,7 @@
 # Runtime config is standard OTEL_* env — at minimum set OTEL_EXPORTER_OTLP_ENDPOINT.
 
 # --- stage 1: build the extension jar ---
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3-eclipse-temurin-26 AS build
 WORKDIR /src
 COPY extension/pom.xml ./pom.xml
 # warm the dependency cache
