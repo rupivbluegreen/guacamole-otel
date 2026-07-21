@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Java extension dependencies (OTel BOM, JUnit, plugins).
+  - package-ecosystem: maven
+    directory: /extension
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      opentelemetry:
+        patterns: ["io.opentelemetry*"]
+
+  # GitHub Actions (keeps pinned action SHAs current).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+
+  # Docker base images (guacamole, otelcol, build stages).
+  - package-ecosystem: docker
+    directory: /packaging/docker
+    schedule: { interval: weekly }
+
+  # Go collector receiver (Phase 5).
+  - package-ecosystem: gomod
+    directory: /receiver/guacamolereceiver
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      collector:
+        patterns: ["go.opentelemetry.io/collector*"]

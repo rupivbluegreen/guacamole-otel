@@ -28,3 +28,32 @@ jobs:
         with: { fetch-depth: 0 }
       # Pinned to a full commit SHA (v1.1.0) — third-party actions must not float on @master.
       - uses: tim-actions/dco@f2279e6e62d5a7d9115b0cb8e837b777b1b02e21
+
+  # Build the distributable packages (jar + RPM) and upload them as CI artifacts.
+  # This does NOT publish a release — see release.yml (G10).
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17", cache: maven }
+      - name: Build extension jar
+        run: mvn -q -f extension/pom.xml -DskipTests package
+      - name: Resolve version
+        id: ver
+        run: echo "version=$(mvn -q -f extension/pom.xml help:evaluate -Dexpression=project.version -DforceStdout)" >> "$GITHUB_OUTPUT"
+      - name: Build RPM (nfpm)
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p dist
+          docker run --rm -e VERSION="$VERSION" -v "$PWD":/work -w /work/packaging \
+            goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: guacamole-otel-packages
+          path: |
+            extension/target/guacamole-otel-extension.jar
+            dist/*.rpm
