@@ -1,0 +1,28 @@
+# systemd unit for the Guacamole OpenTelemetry Collector bundle.
+# Install:
+#   cp collector/otelcol-guacamole.yaml /etc/otelcol-guacamole/otelcol-guacamole.yaml
+#   cp collector/systemd/otelcol-guacamole.env /etc/otelcol-guacamole/otelcol.env   # set OTLP_EXPORTER_ENDPOINT
+#   cp collector/systemd/otelcol-guacamole.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now otelcol-guacamole
+[Unit]
+Description=OpenTelemetry Collector for Apache Guacamole
+Documentation=https://github.com/apache/guacamole
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/otelcol-guacamole/otelcol.env
+ExecStart=/usr/bin/otelcol-contrib --config=/etc/otelcol-guacamole/otelcol-guacamole.yaml
+Restart=on-failure
+RestartSec=5
+# Least privilege. The journald receiver needs read access to the journal.
+DynamicUser=true
+SupplementaryGroups=systemd-journal
+# hostmetrics process scraper needs to see guacd in the host PID namespace.
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

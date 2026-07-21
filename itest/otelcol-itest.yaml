@@ -1,0 +1,54 @@
+# itest-only collector config (docker variant of collector/otelcol-guacamole.yaml).
+# Differences from the shipped config: journald -> filelog on docker container logs
+# (containers have no journald), and a file exporter so the test can assert arrival.
+# The transform/guacd processor is identical to the shipped one (Gap 2 join).
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+  filelog:
+    include: [ /var/lib/docker/containers/*/*-json.log ]
+    operators:
+      - type: json_parser
+        parse_from: body
+      - type: move
+        from: attributes.log
+        to: body
+
+processors:
+  # Identical to the shipped transform/guacd (VERIFIED Gate 0.4 regex).
+  transform/guacd:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["guacamole.connection.id"],
+                ExtractPatterns(body, "Connection ID is \"(?P<cid>[^\"]+)\"")["cid"])
+            where IsString(body) and IsMatch(body, "Connection ID is \"")
+  batch:
+    timeout: 2s
+
+exporters:
+  file:
+    path: /out/telemetry.json
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [file]
+    logs:
+      receivers: [otlp, filelog]
+      processors: [transform/guacd, batch]
+      exporters: [file]
+    # metrics -> debug only: the contrib 0.156 file exporter nil-panics on metrics.
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

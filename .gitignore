@@ -8,5 +8,10 @@ otelcol-contrib
 .remember/
 .idea/
 *.iml
-# probe artifacts
-probe/target/
+# throwaway Phase 0 probe (rollback = delete probe/)
+probe/
+
+# itest local/heavy artifacts (not committed)
+itest/otel/*.jar
+itest/out/
+itest/initdb/err.log

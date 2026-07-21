@@ -1,0 +1,95 @@
+# Apache Guacamole — OpenTelemetry Collector bundle
+#
+# Stock opentelemetry-collector-contrib components only (no novel code). Receives
+# the Java agent + listener telemetry over OTLP, scrapes guacd process metrics,
+# reads guacd/Tomcat logs from journald, and promotes the guacd connection id so
+# guacd log lines join the listener's session telemetry (SPEC §12, Gap 2).
+#
+# Requires otelcol-contrib (journald, hostmetrics/process, transform, otlp).
+# Validate:  otelcol-contrib validate --config collector/otelcol-guacamole.yaml
+#
+# Exporter endpoint is taken from ${env:OTLP_EXPORTER_ENDPOINT} (default below).
+
+receivers:
+
+  # Java agent (JVM/HTTP/JDBC) + the listener extension (spans, metrics, logs).
+  # Bound to localhost — telemetry never leaves the host except via this collector.
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 127.0.0.1:4317
+      http:
+        endpoint: 127.0.0.1:4318
+
+  # Gap 1 — guacd resource + throughput. Process scraper scoped to guacd only.
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      process:
+        include:
+          names: [guacd]
+          match_type: strict
+        # Default process metrics (cpu, memory, disk). NOTE: per-process network io
+        # is not an enableable metric in otelcol-contrib's process scraper, so SPEC
+        # §12.1's process.network.io is dropped; use hostmetrics network scraper for
+        # host-wide throughput if needed.
+      cpu: {}
+      memory: {}
+
+  # Gap 2 — guacd + Tomcat logs. systemd/journald deployment (see itest for the
+  # docker/filelog variant). Info level is sufficient (VERIFIED Gate 0.4: the guacd
+  # connection id is logged at INFO).
+  journald:
+    units:
+      - guacd
+      - tomcat
+    priority: info
+
+processors:
+
+  # Gap 2 correlation — promote the guacd connection id to an attribute.
+  # VERIFIED Gate 0.4: guacd logs `Connection ID is "$<uuid>"` at INFO. The guard
+  # is on body content, so this works for journald and for the itest filelog path.
+  transform/guacd:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["guacamole.connection.id"],
+                ExtractPatterns(body, "Connection ID is \"(?P<cid>[^\"]+)\"")["cid"])
+            where IsString(body) and IsMatch(body, "Connection ID is \"")
+
+  # Privacy (SPEC §10.2) — OPTIONAL, identifiable by default. Uncomment to
+  # pseudonymise the user id before export. See docs/PRIVACY.md.
+  # attributes/pseudonymise:
+  #   actions:
+  #     - key: enduser.id
+  #       action: hash
+
+  batch:
+    timeout: 10s
+
+exporters:
+  otlp:
+    endpoint: ${env:OTLP_EXPORTER_ENDPOINT}
+    tls:
+      insecure: true
+
+  # Uncomment for local troubleshooting.
+  # debug:
+  #   verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]
+    metrics:
+      receivers: [otlp, hostmetrics]
+      processors: [batch]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp, journald]
+      processors: [transform/guacd, batch]
+      exporters: [otlp]

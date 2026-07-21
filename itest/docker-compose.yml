@@ -1,0 +1,76 @@
+# THROWAWAY Phase 0 probe stack. guacamole + guacd + postgres + ssh target,
+# OTel Java agent attached to Guacamole, probe extension loaded.
+# Rollback: docker compose down -v; delete itest/ probe artifacts.
+name: guac-otel-probe
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guacamole_user
+      POSTGRES_PASSWORD: guacpass
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guacamole_user -d guacamole_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  guacd:
+    image: guacamole/guacd:1.6.0
+    # guacd logs to stdout/stderr; capture via `docker compose logs guacd`
+
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:latest
+    user: "0:0"   # itest only: read root-owned docker container json logs (distroless -> numeric uid)
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otelcol-itest.yaml:/etc/otelcol/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./out:/out
+
+  sshtarget:
+    image: linuxserver/openssh-server:latest
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: UTC
+      USER_NAME: guac
+      USER_PASSWORD: guacpass
+      PASSWORD_ACCESS: "true"
+      SUDO_ACCESS: "false"
+
+  guacamole:
+    image: guacamole/guacamole:1.6.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      guacd:
+        condition: service_started
+      otelcol:
+        condition: service_started
+    environment:
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: "4822"
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DATABASE: guacamole_db
+      POSTGRESQL_USER: guacamole_user
+      POSTGRESQL_PASSWORD: guacpass
+      # --- OTel Java agent (Gate 0.1) exporting to the collector over OTLP ---
+      JAVA_OPTS: "-javaagent:/opt/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: guacamole
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otelcol:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_BSP_SCHEDULE_DELAY: "1000"
+      OTEL_JAVAAGENT_DEBUG: "false"
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./otel/opentelemetry-javaagent.jar:/opt/otel/opentelemetry-javaagent.jar:ro
+      - ../extension/target/guacamole-otel-extension.jar:/etc/guacamole/extensions/guacamole-otel-extension.jar:ro
