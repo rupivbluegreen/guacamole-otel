@@ -21,6 +21,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Reproducible build: fixed timestamp so the jar is byte-stable (OpenSSF/SLSA). -->
+    <project.build.outputTimestamp>2026-07-21T00:00:00Z</project.build.outputTimestamp>
     <maven.compiler.release>8</maven.compiler.release>
     <!-- Guacamole 1.6.0 baseline is Java 8 bytecode (VERIFIED). Build with JDK >= 8. -->
     <guacamole.version>1.6.0</guacamole.version>
@@ -111,6 +113,40 @@
         <version>3.5.6</version>
       </plugin>
 
+      <!-- Test coverage (JaCoCo) — report at verify into target/site/jacoco. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <goals><goal>prepare-agent</goal></goals>
+          </execution>
+          <execution>
+            <id>jacoco-report</id>
+            <phase>verify</phase>
+            <goals><goal>report</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- CycloneDX SBOM for the jar (target/*-sbom.{xml,json}) — supply-chain deliverable. -->
+      <plugin>
+        <groupId>org.cyclonedx</groupId>
+        <artifactId>cyclonedx-maven-plugin</artifactId>
+        <version>2.9.1</version>
+        <configuration>
+          <projectType>library</projectType>
+          <outputName>${project.build.finalName}-sbom</outputName>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>makeBom</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- Shade opentelemetry-api (+ transitive opentelemetry-context) into the jar.
            No relocation: the agent must see the real io.opentelemetry.api.* to bridge. -->
       <plugin>
@@ -147,7 +183,7 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>4.3</version>
+        <version>5.0.0</version>
         <configuration>
           <licenseSets>
             <licenseSet>

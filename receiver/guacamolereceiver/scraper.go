@@ -35,7 +35,7 @@ func newScraper(settings receiver.Settings, cfg *Config) *guacamoleScraper {
 }
 
 func (s *guacamoleScraper) start(ctx context.Context, host component.Host) error {
-	client, err := s.cfg.ClientConfig.ToClient(ctx, host.GetExtensions(), s.settings.TelemetrySettings)
+	client, err := s.cfg.ToClient(ctx, host.GetExtensions(), s.settings.TelemetrySettings)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (s *guacamoleScraper) do(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

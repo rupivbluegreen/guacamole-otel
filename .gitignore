@@ -16,3 +16,7 @@ probe/
 itest/otel/*.jar
 itest/out/
 itest/initdb/err.log
+
+# go coverage + cosign bundles
+coverage.out
+*.cosign.bundle

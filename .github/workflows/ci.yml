@@ -76,4 +76,6 @@ jobs:
           name: guacamole-otel-packages
           path: |
             extension/target/guacamole-otel-extension.jar
+            extension/target/guacamole-otel-extension-sbom.json
+            extension/target/guacamole-otel-extension-sbom.xml
             dist/*.rpm

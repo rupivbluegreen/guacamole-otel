@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write   # required to create the Release and upload assets
+  id-token: write   # keyless cosign signing (Sigstore OIDC)
 
 jobs:
   release:
@@ -44,7 +45,17 @@ jobs:
           docker run --rm -e VERSION="$VERSION" -v "$PWD":/work -w /work/packaging \
             goreleaser/nfpm@sha256:a662cb167d7b6d3a83920c83d76b12d02b8ac5dd2c13e5c62c15270b23f6df0c package --config nfpm.yaml --target /work/dist --packager rpm
           cp extension/target/guacamole-otel-extension.jar dist/
-          ( cd dist && sha256sum guacamole-otel-extension.jar *.rpm > SHA256SUMS )
+          cp extension/target/guacamole-otel-extension-sbom.json dist/
+          cp extension/target/guacamole-otel-extension-sbom.xml dist/
+          ( cd dist && sha256sum guacamole-otel-extension.jar *.rpm *sbom* > SHA256SUMS )
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Sign artifacts (keyless / Sigstore)
+        run: |
+          cd dist
+          for f in guacamole-otel-extension.jar *.rpm SHA256SUMS; do
+            cosign sign-blob --yes "$f" --bundle "$f.cosign.bundle"
+          done
 
       - name: Publish GitHub Release
         env:
@@ -54,8 +65,8 @@ jobs:
         run: |
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             gh release upload "$TAG" --repo "$REPO" --clobber \
-              dist/guacamole-otel-extension.jar dist/*.rpm dist/SHA256SUMS
+              dist/guacamole-otel-extension.jar dist/*.rpm dist/*sbom* dist/SHA256SUMS dist/*.cosign.bundle
           else
             gh release create "$TAG" --repo "$REPO" --title "$TAG" --generate-notes \
-              dist/guacamole-otel-extension.jar dist/*.rpm dist/SHA256SUMS
+              dist/guacamole-otel-extension.jar dist/*.rpm dist/*sbom* dist/SHA256SUMS dist/*.cosign.bundle
           fi

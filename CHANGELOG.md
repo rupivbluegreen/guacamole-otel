@@ -22,7 +22,20 @@ step (see [`GOVERNANCE.md`](GOVERNANCE.md)).
   GitHub Actions, and Docker.
 - **`package-build` CI job** that builds the RPM as part of continuous
   integration.
-- **Go receiver CI** (`.github/workflows/go.yml`) — build, vet, and test.
+- **Go receiver CI** (`.github/workflows/go.yml`) — build, vet, test, plus
+  golangci-lint, govulncheck, and coverage.
+- **OSS maturity set** — `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `MAINTAINERS.md`,
+  `SUPPORT.md`, `.github/CODEOWNERS`, `ROADMAP.md`, issue/PR templates.
+- **Security scanning** — CodeQL (Java + Go), OpenSSF Scorecard, and a
+  dependency-review gate; workflows hardened with least-privilege `permissions`
+  and SHA/digest-pinned actions + images.
+- **Release publishing** (`release.yml`) — on a `v*` tag, builds and attaches the
+  jar + RPM + CycloneDX SBOM + `SHA256SUMS` + keyless cosign signatures to a
+  GitHub Release.
+- **Supply chain & quality** — CycloneDX SBOM, JaCoCo coverage (~85% line), and a
+  reproducible-build timestamp for the extension.
+- **`docs/PERFORMANCE.md`** — measured overhead (per-event p99 ≈ 20 µs, no
+  measurable added login latency) against real Guacamole.
 
 ### Changed
 - Rewrote `README.md` in plain language (what you get, what it deliberately does
