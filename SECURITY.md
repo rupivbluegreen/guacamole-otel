@@ -15,15 +15,15 @@ only the code in *this* repository:
 
 The project is pre-1.0. Security fixes are provided only for the most recent
 release line, and are shipped as new patch releases on that line. The current
-release line is `0.1.x`.
+release line is `0.2.x`.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1.0 | :x:                |
+| 0.2.x   | :white_check_mark: |
+| < 0.2.0 | :x:                |
 
 Because there is a single active release line today, **"upgrade to the latest
-`0.1.z`"** is the standard remediation. When a `0.2.0` (or later) line is cut,
+`0.2.z`"** is the standard remediation. When a `0.3.0` (or later) line is cut,
 this table will be updated to record which series still receive fixes.
 
 ## Reporting a vulnerability

@@ -44,7 +44,7 @@ manifest:
 
 ```yaml
 receivers:
-  - gomod: github.com/guacamole-otel/guacamolereceiver v0.1.0
+  - gomod: github.com/guacamole-otel/guacamolereceiver v0.2.0
 ```
 
 ## Develop

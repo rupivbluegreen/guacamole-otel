@@ -50,7 +50,7 @@ spec:
       securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
       containers:
         - name: guacamole
-          image: guacamole-otel:0.1.0   # push the packaging/docker/Dockerfile build here
+          image: guacamole-otel:0.2.0   # push the packaging/docker/Dockerfile build here
           ports: [{ name: http, containerPort: 8080 }]
           env:
             - { name: GUACD_HOSTNAME, value: guacamole-guacd }

@@ -3,7 +3,7 @@
 # OpenShift's arbitrary-UID model (all baked files are world-readable, non-root).
 #
 # Build:
-#   docker build -f packaging/docker/Dockerfile -t guacamole-otel:0.1.0 .
+#   docker build -f packaging/docker/Dockerfile -t guacamole-otel:0.2.0 .
 # (build context = repo root)
 #
 # Runtime config is standard OTEL_* env — at minimum set OTEL_EXPORTER_OTLP_ENDPOINT.

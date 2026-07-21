@@ -10,6 +10,8 @@ step (see [`GOVERNANCE.md`](GOVERNANCE.md)).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-21
+
 ### Added
 - **Go receiver `guacamolereceiver`** (Phase 5) — a stock-component
   OpenTelemetry Collector scraper receiver (Go 1.25, module

@@ -3,8 +3,8 @@
 # collector at your backend via OTLP_EXPORTER_ENDPOINT.
 #
 # Build the images first:
-#   docker build -f packaging/docker/Dockerfile           -t guacamole-otel:0.1.0    .
-#   docker build -f packaging/docker/Dockerfile.collector -t guacamole-otelcol:0.1.0 .
+#   docker build -f packaging/docker/Dockerfile           -t guacamole-otel:0.2.0    .
+#   docker build -f packaging/docker/Dockerfile.collector -t guacamole-otelcol:0.2.0 .
 name: guacamole-otel
 
 services:
@@ -27,13 +27,13 @@ services:
     restart: unless-stopped
 
   otelcol:
-    image: guacamole-otelcol:0.1.0
+    image: guacamole-otelcol:0.2.0
     environment:
       OTLP_EXPORTER_ENDPOINT: ${OTLP_EXPORTER_ENDPOINT:?set to your backend host:port}
     restart: unless-stopped
 
   guacamole:
-    image: guacamole-otel:0.1.0
+    image: guacamole-otel:0.2.0
     depends_on:
       postgres: { condition: service_healthy }
       guacd:    { condition: service_started }

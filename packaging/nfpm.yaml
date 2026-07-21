@@ -1,6 +1,6 @@
 # nfpm packaging for the Guacamole OpenTelemetry extension (RHEL9 RPM).
 # Build:
-#   docker run --rm -e VERSION=0.1.0 -v "$PWD/..":/work -w /work/packaging \
+#   docker run --rm -e VERSION=0.2.0 -v "$PWD/..":/work -w /work/packaging \
 #     goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
 #
 # Deliberately has NO scriptlets: the jar is placed on install and removed on

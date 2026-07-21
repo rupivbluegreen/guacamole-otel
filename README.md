@@ -1,6 +1,6 @@
 # guacamole-otel
 
-[![CI](https://github.com/rupivbluegreen/guacamole-otel/actions/workflows/ci.yml/badge.svg)](https://github.com/rupivbluegreen/guacamole-otel/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/rupivbluegreen/guacamole-otel/releases) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/rupivbluegreen/guacamole-otel/badge)](https://scorecard.dev/viewer/?uri=github.com/rupivbluegreen/guacamole-otel) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![CI](https://github.com/rupivbluegreen/guacamole-otel/actions/workflows/ci.yml/badge.svg)](https://github.com/rupivbluegreen/guacamole-otel/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Release](https://img.shields.io/badge/release-v0.2.0-blue.svg)](https://github.com/rupivbluegreen/guacamole-otel/releases) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/rupivbluegreen/guacamole-otel/badge)](https://scorecard.dev/viewer/?uri=github.com/rupivbluegreen/guacamole-otel) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 **See who connects to what, for how long, and whether logins succeed — for [Apache Guacamole](https://guacamole.apache.org/), with zero changes to Guacamole itself.**
 
@@ -11,7 +11,7 @@ easy access log. This project fixes that by adding standard
 observability backend (Grafana, Tempo/Loki, Elastic, SigNoz, Datadog, …) can show
 Guacamole activity like any other service.
 
-> **Status:** v0.1.0 — the extension, the collector bundle, and packaging for
+> **Status:** v0.2.0 — the extension, the collector bundle, and packaging for
 > RHEL9 / Docker / OpenShift are complete and verified. Apache-2.0.
 
 ---
@@ -82,8 +82,8 @@ The fastest way to try it — a Guacamole image with the plugin + agent baked in
 
 ```sh
 # 1. build the instrumented images
-docker build -f packaging/docker/Dockerfile           -t guacamole-otel:0.1.0    .
-docker build -f packaging/docker/Dockerfile.collector -t guacamole-otelcol:0.1.0 .
+docker build -f packaging/docker/Dockerfile           -t guacamole-otel:0.2.0    .
+docker build -f packaging/docker/Dockerfile.collector -t guacamole-otelcol:0.2.0 .
 
 # 2. point the collector at your OTLP backend, then bring it up
 export OTLP_EXPORTER_ENDPOINT=your-backend:4317

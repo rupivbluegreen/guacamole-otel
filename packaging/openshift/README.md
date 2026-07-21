@@ -6,8 +6,8 @@ prerequisite (out of scope here).
 ## Build & push the instrumented image
 
 ```sh
-docker build -f packaging/docker/Dockerfile -t <registry>/guacamole-otel:0.1.0 .
-docker push <registry>/guacamole-otel:0.1.0
+docker build -f packaging/docker/Dockerfile -t <registry>/guacamole-otel:0.2.0 .
+docker push <registry>/guacamole-otel:0.2.0
 # then set that image ref in guacamole.yaml
 ```
 
