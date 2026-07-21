@@ -18,7 +18,7 @@ COPY extension/src ./src
 RUN mvn -q -B package && cp target/guacamole-otel-extension.jar /guacamole-otel-extension.jar
 
 # --- stage 2: fetch the OpenTelemetry Java agent (pinned) ---
-FROM curlimages/curl:8.10.1 AS agent
+FROM curlimages/curl:8.21.0 AS agent
 ARG OTEL_AGENT_VERSION=2.29.0
 RUN curl -sSL -o /tmp/opentelemetry-javaagent.jar \
     "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar"
