@@ -1,0 +1,8 @@
+{
+  "guacamoleVersion": "*",
+  "name": "OpenTelemetry Instrumentation",
+  "namespace": "otel",
+  "listeners": [
+    "org.apache.guacamole.otel.OtelListener"
+  ]
+}
