@@ -81,8 +81,16 @@ No implementation begins until all four gates pass. Each isolates one failure cl
 **Test:** minimal listener logging `GlobalOpenTelemetry.get().getClass().getName()` on `AuthenticationSuccessEvent`. Pass = an SDK implementation class, not `DefaultOpenTelemetry`/no-op.
 
 **Branch:**
-- **Pass** → `opentelemetry-api` scoped `provided`; extension inherits all agent config. Single env-var surface. *Preferred.*
-- **Fail** → bundle `opentelemetry-sdk` + OTLP exporter shaded into the extension jar; extension reads its own config from `guacamole.properties`. Doubles config surface, adds ~4 MB to the jar, risks duplicate SDK initialisation. Acceptable fallback.
+- **Pass** → agent-bridge. **RESOLVED 2026-07-21 (VERIFIED.md): PASS, but with a
+  corrected dependency scope.** The agent shades its own API to
+  `io.opentelemetry.javaagent.shaded.*` and does NOT expose the unshaded
+  `io.opentelemetry.api.*` to the extension classloader — `provided` scope yields
+  `NoClassDefFoundError`. Working pattern: **bundle (shade) `opentelemetry-api` +
+  `opentelemetry-context` into the extension jar** (compile scope). The agent then
+  bridges `GlobalOpenTelemetry` to its configured SDK, so the SDK, exporters, and all
+  `OTEL_*` config still come from the agent — single config surface preserved. Jar ≈
+  a few-hundred KB (not the SDK, not the exporters). *Chosen branch.*
+- **Fail** → bundle `opentelemetry-sdk` + OTLP exporter shaded into the extension jar; extension reads its own config from `guacamole.properties`. Doubles config surface, adds ~4 MB to the jar, risks duplicate SDK initialisation. **Not needed** — the corrected Pass branch works.
 
 ### Gate 0.2 — event type inventory
 **Question:** what is the exact set of event classes delivered to `Listener.handleEvent` in 1.6.x, and what accessors does each expose?
@@ -142,7 +150,7 @@ guacamole-otel/
 
 ```json
 {
-  "guacamoleVersion": "1.6.*",
+  "guacamoleVersion": "*",
   "name": "OpenTelemetry Instrumentation",
   "namespace": "otel",
   "listeners": [
@@ -152,6 +160,14 @@ guacamole-otel/
 ```
 
 Extension jar is dropped in `GUACAMOLE_HOME/extensions/`. Loaded on servlet container start; listeners are notified in manifest declaration order.
+
+**VERIFIED 2026-07-21:** `guacamoleVersion` is matched against a hardcoded
+allow-list in `ExtensionModule` (exact string `contains`, not a glob) — legal
+values are `"*"` or an exact release string (`1.0.0`…`1.6.0`). `"1.6.*"` is
+**rejected** (`"…is not compatible with this version of Guacamole"`). We ship `"*"`
+(version-agnostic, no per-release bump). `listeners` is a JSON array of
+fully-qualified `Listener` class names (field-name key, confirmed against 1.6.0
+`ExtensionManifest`).
 
 ### 6.2 Entry point contract
 
@@ -205,7 +221,7 @@ Requirements:
 | Kind | `SERVER` |
 | Start | `TunnelConnectEvent` |
 | End | `TunnelCloseEvent`, or TTL sweep |
-| Status | `OK` on clean close; `ERROR` if close carries a failure (pending Gate 0.2) |
+| Status | `OK` on close; `UNSET` on TTL timeout. **VERIFIED: `TunnelCloseEvent` carries no close reason** — there is no failure to map to `ERROR`. |
 
 Attributes:
 
@@ -213,12 +229,12 @@ Attributes:
 |---|---|---|
 | `guacamole.tunnel.uuid` | `4f2c…` | span only, never a metric dimension |
 | `guacamole.connection.id` | `12` | correlation key to guacd logs |
-| `guacamole.connection.name` | `prod-jump-01` | may embed hostnames — see §10 |
-| `guacamole.protocol` | `rdp` | Gate 0.3 |
+| `guacamole.connection.name` | `prod-jump-01` | **VERIFIED not reachable** from `TunnelConnectEvent` (no `UserContext`); dropped from v1 or resolved out-of-band |
+| `guacamole.protocol` | `rdp` | **VERIFIED**: `((ConfiguredGuacamoleSocket) tunnel.getSocket()).getProtocol()`, zero-cost, no lookup |
 | `guacamole.datasource` | `postgresql` | |
 | `enduser.id` | `a.kumar` | pseudonymisation hook, §10.2 |
-| `client.address` | `10.4.2.9` | |
-| `guacamole.session.end_reason` | `closed` \| `timeout` \| `error` | set at end |
+| `client.address` | `10.4.2.9` | `Credentials.getRemoteAddress()` |
+| `guacamole.session.end_reason` | `closed` \| `timeout` | **VERIFIED**: no `error` — close carries no reason |
 
 ### 7.2 Long-span problem — read before implementing
 
@@ -285,6 +301,18 @@ Authentication outcomes are emitted as OTel log records, not metrics-only, becau
 | Body | fixed string | fixed string |
 
 **Never serialised, under any configuration:** the `Credentials` object, `getPassword()`, session tokens, request headers, or any field not enumerated above. `Attributes.java` builds auth records from an explicit allowlist; there is no generic object-to-attributes path in this codebase.
+
+**VERIFIED noise filters (mandatory, §9):**
+- `AuthenticationSuccessEvent` also fires on periodic token **re-authentication**
+  (`isExistingSession()==true`) every few minutes per live session. Emit
+  `auth.success` only for `isExistingSession()==false`, or tag
+  `guacamole.auth.existing_session` and let the backend filter. Untagged, a live
+  estate floods `auth.success`.
+- `AuthenticationFailureEvent` fires for the initial **credential-less anonymous**
+  hit that renders the login screen (`Credentials.isEmpty()==true`). Skip empty-
+  credential failures or they dominate `auth.failure`.
+- `AuthenticationFailureEvent.getFailure()` (nullable `Throwable`) is available — its
+  class name (not message) may tag a failure reason; never serialise the message.
 
 Session connect/close are also emitted as log records (`guacamole.session.connected` / `.closed`) carrying the span's attribute set. This is the real-time counterpart to §7.2's deferred spans, and the artefact most auditors actually want.
 
@@ -385,7 +413,7 @@ If `guacamole_exporter` is already deployed, a `prometheus` receiver ingests it.
 | 13.1 | Listener exception vetoes login/connection | `catch (Throwable)` in `handleEvent`; unit-tested with a deliberately throwing exporter |
 | 13.2 | Registry grows unbounded → Tomcat OOM | hard max entries + TTL sweep + eviction counter |
 | 13.3 | Metric cardinality explosion | code-level dimension allowlist; unit test asserts prohibited keys are unattachable |
-| 13.4 | Directory lookup on event thread adds login latency | if Gate 0.3 requires a lookup: bounded TTL cache, and on cache miss emit with `protocol=unknown` rather than blocking |
+| 13.4 | Directory lookup on event thread adds login latency | **VERIFIED moot** — Gate 0.3 needs no lookup: protocol + connection id come straight off `ConfiguredGuacamoleSocket` on the event thread. Keep only a null/`instanceof` guard → `protocol=unknown`, `connection.id` absent. No TTL cache. |
 | 13.5 | Collector down → exporter backpressure | agent/SDK exporters are async with bounded queues; drop, never block. **Verify** queue is bounded and `BatchSpanProcessor` is in use, not `SimpleSpanProcessor` |
 | 13.6 | OTLP endpoint misconfigured at startup | fail open — log once at WARN, continue with no-op; never prevent extension load |
 | 13.7 | Credentials leaked into attributes | explicit allowlist; unit test asserts no attribute value equals the test password |
@@ -398,7 +426,12 @@ If `guacamole_exporter` is already deployed, a `prometheus` receiver ingests it.
 
 ## 14. Build, packaging, installation
 
-- **Build:** Maven. `guacamole-ext` scope `provided`. `opentelemetry-api` scope `provided` (Gate 0.1 pass) or shaded (fail). Jar contains no transitive dependencies in the pass case — target < 100 KB.
+- **Build:** Maven, `maven.compiler.release=8` (**VERIFIED**: Guacamole 1.6.0 baseline
+  is Java 8 bytecode; the 1.6.0 image runs JVM 21, so release-8 bytecode loads).
+  `guacamole-ext` + `guacamole-common` scope `provided`. `opentelemetry-api` +
+  `opentelemetry-context` **shaded into the jar** (Gate 0.1 corrected pass), not
+  `provided`. Jar carries only the shaded API — target ≈ a few-hundred KB (probe
+  reference: 212 KB).
 - **Artefacts:** `.jar` on GitHub Releases; RPM via `nfpm` for RHEL9 placing the jar in `GUACAMOLE_HOME/extensions/` with correct ownership.
 - **Install:** drop jar, restart servlet container. No database migration, no webapp rebuild, no guacd change.
 - **Uninstall:** delete jar, restart. Complete removal — no residue in Guacamole's schema or config.

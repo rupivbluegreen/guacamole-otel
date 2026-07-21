@@ -93,8 +93,10 @@ G10. **Human gates.** The following are proposed as a plan and executed only
 
 ## Environment facts
 
-- Target: Guacamole 1.6.x, Java 17 (match Guacamole's build baseline — verify,
-  G8), Maven, RHEL9 for the RPM (`nfpm`).
+- Target: Guacamole 1.6.x. Build the extension at `maven.compiler.release=8`
+  (VERIFIED 2026-07-21: Guacamole 1.6.0 baseline is Java 8 bytecode; the 1.6.0
+  image runs JVM 21, so release-8 loads). Any JDK ≥ 8 (17 in CI) builds it. Maven,
+  RHEL9 for the RPM (`nfpm`).
 - Integration environment is docker-compose (`itest/`): guacamole, guacd,
   postgres, otel-collector, plus a throwaway SSH target. Never point tests at
   a real estate.

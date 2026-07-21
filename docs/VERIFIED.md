@@ -264,4 +264,11 @@ guacd[16]: INFO:	SSH connection successful.
 6. §9: filter `AuthenticationSuccessEvent.isExistingSession()==true` (re-auth) and `Credentials.isEmpty()` failures (anonymous login-screen hits) to avoid log-record noise.
 7. CLAUDE.md/SPEC env: build target **Java 8** (runtime image is JVM 21; release-8 bytecode loads).
 
-_Exit gate P0 NOT marked passed — awaiting human sign-off (G10)._
+## 2026-07-21 — Gate P0
+Result: PASS
+Evidence: Gates 0.1–0.4 above (probe logs, guacd logs, fetched 1.6.0 source).
+  Human review of VERIFIED.md + sign-off recorded in session 2026-07-21.
+Consequence: agent-bridge branch locked (`opentelemetry-api`+`opentelemetry-context`
+  shaded into the extension jar; SDK/exporter/config from the OTel Java agent).
+  Manifest `guacamoleVersion` = `"*"`. Build target Java 8. The 7 SPEC/CLAUDE
+  corrections applied in the same session. Phase 1 unblocked.
