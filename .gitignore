@@ -1,0 +1,12 @@
+# build
+target/
+*.class
+# collector binaries fetched in CI/itest
+otelcol-contrib
+*.tar.gz
+# session tooling / local
+.remember/
+.idea/
+*.iml
+# probe artifacts
+probe/target/
