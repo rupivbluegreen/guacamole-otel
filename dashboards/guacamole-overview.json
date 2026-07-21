@@ -1,0 +1,114 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Prometheus-compatible backend holding the guacamole.* metrics",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "title": "Guacamole — OpenTelemetry Overview",
+  "uid": "guacamole-otel-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "${DS_PROMETHEUS}" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Active sessions (metric, not span count)",
+      "description": "guacamole.session.active — the real-time signal. Never derived from span counts (SPEC §7.2).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(guacamole_session_active)", "legendFormat": "active" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Authentication failure rate",
+      "description": "rate of guacamole.auth.attempts by outcome — a DORA anomaly-detection signal.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (guacamole_auth_outcome) (rate(guacamole_auth_attempts_total[5m]))", "legendFormat": "{{guacamole_auth_outcome}}" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "heatmap",
+      "title": "Session duration",
+      "description": "guacamole.session.duration histogram (explicit buckets 10s … 24h).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "options": { "calculate": false, "yAxis": { "unit": "s" } },
+      "targets": [
+        { "refId": "A", "expr": "sum by (le) (rate(guacamole_session_duration_seconds_bucket[5m]))", "format": "heatmap", "legendFormat": "{{le}}" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "piechart",
+      "title": "Top protocols",
+      "description": "Active sessions by protocol.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (guacamole_protocol) (guacamole_session_active)", "legendFormat": "{{guacamole_protocol}}" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Self-telemetry — OTel errors by stage",
+      "description": "guacamole.otel.errors — includes the benign 'unmatched_close' stage.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 14 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (guacamole_otel_stage) (rate(guacamole_otel_errors_total[5m]))", "legendFormat": "{{guacamole_otel_stage}}" }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Self-telemetry — session registry size",
+      "description": "guacamole.otel.registry.size — bounded by otel.registry.max-entries (G6).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 14 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(guacamole_otel_registry_size)", "legendFormat": "entries" }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Self-telemetry — registry evictions by reason",
+      "description": "guacamole.otel.registry.evictions — capacity vs timeout.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 14 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (guacamole_otel_registry_reason) (rate(guacamole_otel_registry_evictions_total[5m]))", "legendFormat": "{{guacamole_otel_registry_reason}}" }
+      ]
+    }
+  ]
+}

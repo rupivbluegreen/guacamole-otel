@@ -1,0 +1,35 @@
+# nfpm packaging for the Guacamole OpenTelemetry extension (RHEL9 RPM).
+# Build:
+#   docker run --rm -e VERSION=0.1.0 -v "$PWD/..":/work -w /work/packaging \
+#     goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
+#
+# Deliberately has NO scriptlets: the jar is placed on install and removed on
+# erase; `rpm -e` leaves nothing behind. Guacamole loads it on the next servlet
+# container restart.
+name: guacamole-otel-extension
+arch: noarch
+platform: linux
+version: ${VERSION}
+release: 1
+section: default
+priority: optional
+maintainer: guacamole-otel contributors
+description: |
+  OpenTelemetry instrumentation for Apache Guacamole.
+  Drop-in guacamole-ext listener emitting session spans, session metrics, and
+  authentication log records. Requires the OpenTelemetry Java agent on the
+  servlet container (agent-bridge). Not affiliated with the Apache Software
+  Foundation.
+vendor: guacamole-otel
+homepage: https://github.com/apache/guacamole
+license: Apache-2.0
+
+contents:
+  - src: ../extension/target/guacamole-otel-extension.jar
+    dst: /etc/guacamole/extensions/guacamole-otel-extension.jar
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+
+# No pre/post scriptlets are declared anywhere, by design.

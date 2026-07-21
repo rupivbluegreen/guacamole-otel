@@ -1,6 +1,7 @@
 # build
 target/
 *.class
+dist/
 # collector binaries fetched in CI/itest
 otelcol-contrib
 *.tar.gz

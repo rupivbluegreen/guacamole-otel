@@ -1,0 +1,48 @@
+# DRAFTED, NOT ENABLED (guardrail G10).
+#
+# This workflow only ever runs on a manual `workflow_dispatch` — never on tag push —
+# and it does NOT publish anything: it builds the jar + RPM and uploads them as
+# workflow artifacts for inspection. Creating a GitHub Release / attaching release
+# assets requires explicit human approval and must be added deliberately (the step
+# is left commented out). Do not add tag/push triggers or a publish step without
+# that approval.
+name: release (draft — build only, no publish)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to stamp (e.g. 0.1.0)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17", cache: maven }
+
+      - name: Build extension jar
+        run: mvn -q -f extension/pom.xml -DskipTests=false verify
+
+      - name: Build RPM (nfpm)
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p dist
+          docker run --rm -e VERSION="$VERSION" -v "$PWD":/work -w /work/packaging \
+            goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
+
+      - name: Upload build artifacts (NOT a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: guacamole-otel-${{ inputs.version }}
+          path: |
+            extension/target/guacamole-otel-extension.jar
+            dist/*.rpm
+
+      # --- Publishing is intentionally NOT enabled (G10). To release, a human adds
+      # --- a step such as softprops/action-gh-release here, in a separate approved PR.

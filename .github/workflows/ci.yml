@@ -9,6 +9,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17", cache: maven }
+      # mvn verify also runs the license-header check (mycila license-maven-plugin).
       - name: Build and test
         run: mvn -q -f extension/pom.xml verify
       - name: Validate collector config
@@ -18,9 +19,12 @@ jobs:
           ./otelcol-contrib validate --config collector/otelcol-guacamole.yaml
         env:
           OTELCOL_URL: https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest/download/otelcol-contrib_linux_amd64.tar.gz
+          # transform/otlp config references this; any value satisfies validate.
+          OTLP_EXPORTER_ENDPOINT: localhost:4317
   dco:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: tim-actions/dco@master
+      # Pinned to a full commit SHA (v1.1.0) — third-party actions must not float on @master.
+      - uses: tim-actions/dco@f2279e6e62d5a7d9115b0cb8e837b777b1b02e21
