@@ -25,7 +25,7 @@
     <!-- Guacamole 1.6.0 baseline is Java 8 bytecode (VERIFIED). Build with JDK >= 8. -->
     <guacamole.version>1.6.0</guacamole.version>
     <otel.version>1.43.0</otel.version>
-    <slf4j.version>1.7.36</slf4j.version>
+    <slf4j.version>2.0.18</slf4j.version>
     <junit.version>5.10.2</junit.version>
   </properties>
 
