@@ -14,20 +14,35 @@ jobs:
         run: mvn -q -f extension/pom.xml verify
       - name: Validate collector config
         run: |
-          curl -sSfL -o otelcol.tar.gz "$OTELCOL_URL"
-          tar xzf otelcol.tar.gz otelcol-contrib
-          ./otelcol-contrib validate --config collector/otelcol-guacamole.yaml
-        env:
-          OTELCOL_URL: https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest/download/otelcol-contrib_linux_amd64.tar.gz
-          # transform/otlp config references this; any value satisfies validate.
-          OTLP_EXPORTER_ENDPOINT: localhost:4317
+          docker run --rm -e OTLP_EXPORTER_ENDPOINT=localhost:4317 \
+            -v "$PWD/collector":/cfg:ro \
+            otel/opentelemetry-collector-contrib:latest \
+            validate --config /cfg/otelcol-guacamole.yaml
   dco:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      # Pinned to a full commit SHA (v1.1.0) — third-party actions must not float on @master.
-      - uses: tim-actions/dco@f2279e6e62d5a7d9115b0cb8e837b777b1b02e21
+      # Inline DCO check (the tim-actions/dco action errors on current runners).
+      # SHAs come via env — never interpolated into the shell (injection-safe).
+      - name: Check DCO sign-off
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ] && [ -n "$HEAD_SHA" ]; then
+            range="$BASE_SHA..$HEAD_SHA"
+          else
+            range="HEAD~1..HEAD"
+          fi
+          fail=0
+          for c in $(git rev-list "$range"); do
+            if ! git log -1 --format='%B' "$c" | grep -q '^Signed-off-by: '; then
+              echo "::error::commit $c is missing a Signed-off-by line (DCO)"
+              fail=1
+            fi
+          done
+          exit $fail
 
   # Build the distributable packages (jar + RPM) and upload them as CI artifacts.
   # This does NOT publish a release — see release.yml (G10).
