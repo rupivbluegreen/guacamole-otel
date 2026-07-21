@@ -1,0 +1,86 @@
+# CodeQL static analysis (SAST) for the two compiled languages in this repo:
+#   - java-kotlin: the guacamole-ext extension (Maven, extension/)
+#   - go:          the collector receiver (receiver/guacamolereceiver/)
+#
+# Analysis only. Results are uploaded to GitHub code scanning; nothing is
+# published, pushed, tagged, or released (guardrail G10). Every third-party
+# action is pinned to a full commit SHA (the trailing comment records the tag).
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly re-scan so newly published CodeQL queries run against a quiet tree.
+    - cron: "27 3 * * 1"
+
+# Least privilege: read-only by default; the analyze job elevates only what
+# CodeQL needs to upload findings.
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write # upload CodeQL results to the code-scanning API
+      actions: read # read workflow run status (needed for private repos)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: go
+            build-mode: manual
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Toolchain for the java-kotlin manual build. Guacamole targets Java 8
+      # bytecode (maven.compiler.release=8) but builds on a modern LTS JDK,
+      # matching ci.yml.
+      - name: Set up JDK 17
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # Toolchain for the go manual build.
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.25"
+          cache-dependency-path: receiver/guacamolereceiver/go.sum
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      # Manual build (java-kotlin): compile the extension so CodeQL can trace it.
+      # `package` (not `verify`) skips the license-header check; tests are skipped.
+      - name: Build extension (Java)
+        if: matrix.language == 'java-kotlin'
+        run: mvn -q -B -f extension/pom.xml -DskipTests package
+
+      # Manual build (go): compile the standalone receiver module.
+      - name: Build receiver (Go)
+        if: matrix.language == 'go'
+        working-directory: receiver/guacamolereceiver
+        run: go build ./...
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+        with:
+          category: "/language:${{ matrix.language }}"

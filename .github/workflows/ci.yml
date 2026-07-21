@@ -2,12 +2,17 @@ name: ci
 on:
   push: { branches: [main] }
   pull_request:
+
+# Least-privilege default token scope (the DCO job needs read history only).
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with: { distribution: temurin, java-version: "17", cache: maven }
       # mvn verify also runs the license-header check (mycila license-maven-plugin).
       - name: Build and test
@@ -16,12 +21,12 @@ jobs:
         run: |
           docker run --rm -e OTLP_EXPORTER_ENDPOINT=localhost:4317 \
             -v "$PWD/collector":/cfg:ro \
-            otel/opentelemetry-collector-contrib:latest \
+            otel/opentelemetry-collector-contrib@sha256:125bdbeb7590cc1952c5b3430ecf14063568980c2c93d5b38676cc0446ed8108 \
             validate --config /cfg/otelcol-guacamole.yaml
   dco:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
       # Inline DCO check (the tim-actions/dco action errors on current runners).
       # SHAs come via env — never interpolated into the shell (injection-safe).
@@ -50,8 +55,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with: { distribution: temurin, java-version: "17", cache: maven }
       - name: Build extension jar
         run: mvn -q -f extension/pom.xml -DskipTests package
@@ -64,9 +69,9 @@ jobs:
         run: |
           mkdir -p dist
           docker run --rm -e VERSION="$VERSION" -v "$PWD":/work -w /work/packaging \
-            goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
+            goreleaser/nfpm@sha256:a662cb167d7b6d3a83920c83d76b12d02b8ac5dd2c13e5c62c15270b23f6df0c package --config nfpm.yaml --target /work/dist --packager rpm
       - name: Upload packages
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: guacamole-otel-packages
           path: |
