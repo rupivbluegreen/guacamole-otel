@@ -287,3 +287,18 @@ Consequence: human approved the G1 handleEvent envelope verbatim and the Attribu
   allowlist. Unmatched-close counted on `guacamole.otel.errors` stage=`unmatched_close`
   (fits §8's existing 7 instruments; no 8th added). Jar 232 KB (agent-bridge shaded).
   Phase 2 (collector bundle + correlation) unblocked.
+
+## 2026-07-21 — Gate P2
+Result: PASS
+Evidence: `collector/otelcol-guacamole.yaml` passes `otelcol-contrib validate`.
+  itest (`itest/run-correlation-test.sh`): (a) `guacamole.session` span arrived on
+  close; (b) `guacamole.session.connected` log arrived at connect; (c) a guacd log
+  line `Connection ID is "$48e14a8e-..."` and the session telemetry shared
+  `guacamole.connection.id` via the transform/guacd processor (8 records, same id).
+  Kill test: collector stopped mid-flight, login succeeded (115 ms) and the SSH
+  session established (guacd "SSH connection successful"), guacamole healthy, no OOM
+  (bounded-queue drop, §13.5).
+Consequence: human sign-off recorded. Two config deviations noted in the Phase 2
+  commit — SPEC §12.1 `process.network.io` dropped (not enableable in current
+  otelcol-contrib process scraper); the itest file exporter is routed off metrics
+  (contrib 0.156 nil-panics exporting metrics to file). Phase 3 unblocked.
