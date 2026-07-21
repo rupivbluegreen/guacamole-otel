@@ -1,0 +1,24 @@
+# Go CI for the collector receiver (Phase 5). Separate from ci.yml so the two
+# never conflict. Only runs when the receiver changes.
+name: go
+on:
+  push:
+    branches: [main]
+    paths: ["receiver/**", ".github/workflows/go.yml"]
+  pull_request:
+    paths: ["receiver/**", ".github/workflows/go.yml"]
+jobs:
+  receiver:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: receiver/guacamolereceiver
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: receiver/guacamolereceiver/go.sum
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./...

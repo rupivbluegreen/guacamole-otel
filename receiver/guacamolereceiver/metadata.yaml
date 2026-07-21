@@ -1,0 +1,23 @@
+# Component metadata (mdatagen format). For a collector-contrib submission this
+# drives code generation of internal/metadata. Kept here as the source of truth.
+type: guacamole
+
+status:
+  class: receiver
+  stability:
+    development: [metrics]
+  distributions: [contrib]
+  codeowners:
+    active: []
+
+resource_attributes: {}
+
+attributes: {}
+
+metrics:
+  guacamole.active_connections:
+    enabled: true
+    description: Number of currently active Guacamole connections.
+    unit: "{connection}"
+    gauge:
+      value_type: int
