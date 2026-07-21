@@ -2,6 +2,18 @@
 
 Deploying the Guacamole OpenTelemetry extension + collector bundle.
 
+## Deployment options
+
+| Target | Path | Notes |
+|---|---|---|
+| **RHEL9 / bare-metal / VM** | RPM — `packaging/nfpm.yaml` | drop-in jar + systemd collector; steps below |
+| **Docker** | `packaging/docker/` | instrumented guacamole image (extension + agent baked in) + a reference compose |
+| **OpenShift / Kubernetes** | `packaging/openshift/` | manifests + kustomization; arbitrary-UID/SCC-safe; see that dir's README |
+
+The sections below cover the RPM/manual path. For containers, the extension and
+agent are **baked into the image** (`packaging/docker/Dockerfile`) so there is no
+writable-mount or UID concern; you only set `OTEL_EXPORTER_OTLP_ENDPOINT` at runtime.
+
 ## Requirements
 
 - Apache Guacamole **1.6.x** (the extension manifest declares `"*"`, so it loads

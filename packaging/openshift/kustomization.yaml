@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Secrets are intentionally NOT included — create guacamole-db and
+# guacamole-otel-backend from secrets.example.yaml out-of-band.
+resources:
+  - otelcol-configmap.yaml
+  - otelcol.yaml
+  - guacamole.yaml
+commonLabels:
+  app.kubernetes.io/part-of: guacamole-otel

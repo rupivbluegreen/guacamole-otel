@@ -1,0 +1,53 @@
+# Reference Docker deployment (NOT the integration test — see itest/ for that).
+# The instrumented guacamole image + guacd + postgres + the collector. Point the
+# collector at your backend via OTLP_EXPORTER_ENDPOINT.
+#
+# Build the images first:
+#   docker build -f packaging/docker/Dockerfile           -t guacamole-otel:0.1.0    .
+#   docker build -f packaging/docker/Dockerfile.collector -t guacamole-otelcol:0.1.0 .
+name: guacamole-otel
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guacamole_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guacamole_user -d guacamole_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  guacd:
+    image: guacamole/guacd:1.6.0
+    restart: unless-stopped
+
+  otelcol:
+    image: guacamole-otelcol:0.1.0
+    environment:
+      OTLP_EXPORTER_ENDPOINT: ${OTLP_EXPORTER_ENDPOINT:?set to your backend host:port}
+    restart: unless-stopped
+
+  guacamole:
+    image: guacamole-otel:0.1.0
+    depends_on:
+      postgres: { condition: service_healthy }
+      guacd:    { condition: service_started }
+      otelcol:  { condition: service_started }
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_DATABASE: guacamole_db
+      POSTGRESQL_USER: guacamole_user
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcol:4317
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

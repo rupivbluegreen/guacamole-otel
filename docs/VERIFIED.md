@@ -302,3 +302,16 @@ Consequence: human sign-off recorded. Two config deviations noted in the Phase 2
   commit — SPEC §12.1 `process.network.io` dropped (not enableable in current
   otelcol-contrib process scraper); the itest file exporter is routed off metrics
   (contrib 0.156 nil-panics exporting metrics to file). Phase 3 unblocked.
+
+## 2026-07-21 — Gate P3
+Result: PASS
+Evidence: nfpm RPM built and verified in rockylinux:9 — `rpm -qlp` lists only
+  `/etc/guacamole/extensions/guacamole-otel-extension.jar`, `rpm -qp --scripts`
+  shows no scriptlets, `rpm -i` then `rpm -e` leaves the extensions dir empty.
+  Dashboard JSON validated. INSTALL/PRIVACY/EXTENSION-POINTS/README written; CI pins
+  tim-actions/dco to a commit SHA and runs the license check via mvn verify;
+  release.yml is workflow_dispatch-only, build-only (no publish, G10).
+Consequence: human approved the README compliance claims and PRIVACY.md. Clean-room
+  RPM mechanics verified on RHEL9; the jar loads + emits in the live guacamole stack.
+  Follow-up requested: add OpenShift + Docker packaging alongside the RPM. Phase 4
+  unblocked.

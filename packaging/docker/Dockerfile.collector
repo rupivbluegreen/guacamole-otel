@@ -1,0 +1,10 @@
+# The Guacamole collector bundle, baked into an otelcol-contrib image.
+# Build:  docker build -f packaging/docker/Dockerfile.collector -t guacamole-otelcol:0.1.0 .
+# (build context = repo root)
+#
+# Set OTLP_EXPORTER_ENDPOINT at runtime to your backend. On containers there is no
+# journald; mount container logs and switch the journald receiver to a filelog one,
+# or ship guacd logs to this collector over OTLP — see packaging/openshift/README.md.
+FROM otel/opentelemetry-collector-contrib:latest
+COPY collector/otelcol-guacamole.yaml /etc/otelcol/config.yaml
+CMD ["--config=/etc/otelcol/config.yaml"]

@@ -1,0 +1,41 @@
+# Collector config for OpenShift/Kubernetes. Unlike the systemd bundle, there is no
+# host journald or host process scraper in-cluster: this variant receives everything
+# over OTLP and forwards to your backend. The transform/guacd processor is retained
+# so that guacd log lines shipped in as logs (via a guacd log sidecar collector or the
+# cluster log pipeline forwarding OTLP) still get guacamole.connection.id promoted.
+# See README.md for the guacd-log correlation options.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guacamole-otelcol
+  labels: { app.kubernetes.io/part-of: guacamole-otel }
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc: { endpoint: 0.0.0.0:4317 }
+          http: { endpoint: 0.0.0.0:4318 }
+
+    processors:
+      transform/guacd:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(attributes["guacamole.connection.id"],
+                    ExtractPatterns(body, "Connection ID is \"(?P<cid>[^\"]+)\"")["cid"])
+                where IsString(body) and IsMatch(body, "Connection ID is \"")
+      batch:
+        timeout: 10s
+
+    exporters:
+      otlp:
+        endpoint: ${env:OTLP_EXPORTER_ENDPOINT}
+        tls: { insecure: true }
+
+    service:
+      pipelines:
+        traces:  { receivers: [otlp], processors: [batch], exporters: [otlp] }
+        metrics: { receivers: [otlp], processors: [batch], exporters: [otlp] }
+        logs:    { receivers: [otlp], processors: [transform/guacd, batch], exporters: [otlp] }
