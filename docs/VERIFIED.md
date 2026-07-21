@@ -272,3 +272,18 @@ Consequence: agent-bridge branch locked (`opentelemetry-api`+`opentelemetry-cont
   shaded into the extension jar; SDK/exporter/config from the OTel Java agent).
   Manifest `guacamoleVersion` = `"*"`. Build target Java 8. The 7 SPEC/CLAUDE
   corrections applied in the same session. Phase 1 unblocked.
+
+## 2026-07-21 — Gate P1
+Result: PASS
+Evidence: `mvn verify` green, 19 unit tests (SPEC §15.1 set: connect/close single
+  span + duration + attrs; unmatched close no-op + counted; TTL sweep timeout;
+  G4 prohibited dims unattachable; G3 no attribute equals the test password; G1
+  throwing exporter does not propagate; capacity eviction bounded + counted).
+  Live itest: extension "OpenTelemetry Instrumentation" (otel) loads; a driven SSH
+  session emits auth-success + session-connected/closed log records and a bridged
+  `guacamole.session` SERVER span carrying `guacamole.connection.id=$63d4c7c9-...`
+  (the guacd correlation key), zero suppressed errors.
+Consequence: human approved the G1 handleEvent envelope verbatim and the Attributes
+  allowlist. Unmatched-close counted on `guacamole.otel.errors` stage=`unmatched_close`
+  (fits §8's existing 7 instruments; no 8th added). Jar 232 KB (agent-bridge shaded).
+  Phase 2 (collector bundle + correlation) unblocked.
