@@ -137,3 +137,131 @@ ipaddress, servlet-api — available at runtime, need not be bundled.
   at info level; yields the collector `transform` regex.
 
 _Gate P0 exit NOT marked passed — pending probe + human review (G10)._
+
+---
+
+## 2026-07-21 — Gate 0.2 event dispatch (probe-confirmed)
+
+**Method:** probe `Listener` logging every `event.getClass().getName()`, guacamole
+1.6.0 image (Tomcat 9.0.106, **JVM Eclipse Adoptium 21.0.7** — note runtime is
+Java 21, extension bytecode release-8 loads fine), OTel agent 2.29.0 attached.
+
+Observed event object classes (evidence — `docker compose logs guacamole`):
+- `org.apache.guacamole.GuacamoleServletContextListener$3` (app-started, **anonymous
+  inner class** — dispatch must use `instanceof` on public event types, never class
+  equality; SPEC §6.2 `instanceof` chain is correct)
+- `org.apache.guacamole.rest.auth.AuthenticationService$$Lambda/0x...` (internal, pre-auth)
+- `org.apache.guacamole.net.event.AuthenticationSuccessEvent` (public — matched)
+- `org.apache.guacamole.net.event.TunnelConnectEvent` (public — matched)
+
+Confirms the §6.2 dispatch model: filter by `instanceof` against the four public
+event types; internal/lambda/anonymous event objects fall through harmlessly.
+
+## 2026-07-21 — Gate 0.1 classloader visibility — **PASS (agent-bridge), with corrected dependency scope**
+
+Result: **PASS** — `GlobalOpenTelemetry.get()` from the Guacamole extension
+classloader returns the agent's live SDK bridge, **provided `opentelemetry-api`
+is bundled (shaded) into the extension jar.**
+
+Evidence (probe, after bundling api):
+```
+GATE-0.1 GlobalOpenTelemetry.get()
+  class=io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_27.ApplicationOpenTelemetry127
+  tracerProvider=...ApplicationTracerProvider14
+  loadedBy=org.apache.guacamole.extension.ExtensionClassLoader@49136fb
+```
+`ApplicationOpenTelemetry127` is the agent's bridge (NOT `DefaultOpenTelemetry`/no-op),
+loaded in Guacamole's isolated `ExtensionClassLoader`.
+
+**Correction to SPEC §4/§14 — the "Pass = provided scope" premise is FALSE.**
+First attempt with `opentelemetry-api` scope `provided` (SPEC's design) →
+`NoClassDefFoundError: io/opentelemetry/api/GlobalOpenTelemetry`. The Java agent
+**shades** its own API to `io.opentelemetry.javaagent.shaded.*` and does NOT expose
+the unshaded `io.opentelemetry.api.*` to the app/extension classloader. The working
+pattern:
+- **Bundle `opentelemetry-api` (+ `opentelemetry-context`) shaded into the extension
+  jar** (compile scope). The agent instruments these app-side API classes and bridges
+  `GlobalOpenTelemetry` to its configured SDK.
+- Config surface stays single: all `OTEL_*` env on the JVM (the agent's SDK) governs
+  the extension's spans/metrics. The agent-bridge benefit is preserved.
+- We do **NOT** bundle the SDK or exporters (agent supplies them).
+- **Jar-size target correction:** SPEC §14 / BUILD-PHASES P1 "< 100 KB" assumed
+  `provided` api. Real target with shaded api+context ≈ a few hundred KB (probe jar
+  = 212 KB). Update the exit-gate size assertion accordingly.
+
+Branch chosen: **agent-bridge (corrected)** — `opentelemetry-api`+`opentelemetry-context`
+shaded in; SDK/exporter/config from the agent. Bundled-SDK fallback NOT needed.
+
+## 2026-07-21 — Gate 0.3 connection metadata traversal — **PASS, no cache needed**
+
+Result: from `TunnelConnectEvent`, both protocol and the guacd connection id are
+reachable **directly on the event thread, zero blocking I/O, no directory lookup,
+no TTL cache.**
+
+Evidence (probe):
+```
+GATE-0.3 tunnelUuid=8063df49-c55f-347b-802d-0c1168c0c119
+  socketClass=org.apache.guacamole.protocol.ConfiguredGuacamoleSocket
+  protocol=ssh  isConfiguredSocket=true
+  guacdConnectionId=$2a5e6978-8fc8-4373-890f-b808bc4a29b4
+```
+- Runtime `tunnel.getSocket()` is a **bare `ConfiguredGuacamoleSocket`** (not wrapped
+  by Filtered/Monitoring/Delegating) → `instanceof ConfiguredGuacamoleSocket` holds,
+  `getConnectionID()` reachable.
+- `protocol` via `getProtocol()` = `ssh`, zero cost.
+- **Consequence for design:** SPEC §13.4 TTL cache and the L5 "protocol=unknown on
+  miss" path are NOT required for protocol/connection-id (keep `protocol=unknown` only
+  as a null-guard). Traversal for Phase 1:
+  `s = tunnel.getSocket(); if (s instanceof ConfiguredGuacamoleSocket cs) { protocol=cs.getProtocol(); connId=cs.getConnectionID(); }`
+  with a null/`instanceof`-false fallback to `protocol=unknown`, `connection.id` absent.
+- Caveat carried forward: robustness should still `instanceof`-guard (a future
+  Guacamole build could wrap the socket); on miss, degrade, never block.
+- `guacamole.connection.name` (human name) still NOT available from the event; drop
+  it from the Phase 1 span schema or resolve out-of-band. `guacamole.tunnel.uuid` =
+  `tunnel.getUUID()` (span-only).
+
+## 2026-07-21 — Gate 0.4 guacd log format + correlation — **PASS at INFO**
+
+Result: guacd emits the connection id **at default INFO level** (no debug needed),
+and it **matches the listener's `getConnectionID()` exactly** → end-to-end
+correlation (Gap 2) confirmed.
+
+Evidence (`docker compose logs guacd`, one SSH session):
+```
+guacd[1]:  INFO:	Creating new client for protocol "ssh"
+guacd[1]:  INFO:	Connection ID is "$2a5e6978-8fc8-4373-890f-b808bc4a29b4"
+guacd[16]: INFO:	User "@cd78fae2-..." joined connection "$2a5e6978-8fc8-4373-890f-b808bc4a29b4" (1 users now present)
+guacd[16]: INFO:	SSH connection successful.
+```
+- Same id `$2a5e6978-8fc8-4373-890f-b808bc4a29b4` as the socket in Gate 0.3. The
+  `$`-prefix is part of the id.
+- Docker stdout line format: `guacd[<pid>]: <LEVEL>:\t<message>` (tab after level).
+- Collector `transform` regex (message body): `Connection ID is "(?P<cid>[^"]+)"`
+  (or `joined connection "(?P<cid>[^"]+)"`). SPEC §12.2 placeholder
+  `connection "(?P<cid>...)"` is close but the real prefix is `Connection ID is "..."`.
+- **Deployment note:** SPEC §12.1 uses a `journald` receiver keyed on
+  `_SYSTEMD_UNIT == guacd.service`. This probe used Docker stdout (no journald);
+  the *message-body* regex is identical, only the log-source wiring differs. Confirm
+  the systemd MESSAGE field carries the same `INFO:\t...` body in the Phase 2 itest.
+
+---
+
+## 2026-07-21 — Gate P0 exit (proposed)
+
+| Gate | Result | Key consequence |
+|---|---|---|
+| 0.1 classloader | **PASS** (agent-bridge) | bundle+shade `opentelemetry-api`(+context); NOT `provided`; SDK/config from agent; jar ≈ few-hundred KB |
+| 0.2 event inventory | **RESOLVED** | 4 public events consumed; `instanceof` dispatch; `TunnelCloseEvent` has no close reason; auth re-auth/empty noise to filter |
+| 0.3 metadata | **PASS** | protocol + guacd connection-id direct from bare `ConfiguredGuacamoleSocket`, zero I/O, no TTL cache |
+| 0.4 guacd logs | **PASS** | connection id at INFO, `Connection ID is "$<uuid>"`, matches listener id — Gap 2 joins |
+
+**SPEC corrections required before Phase 1 (need human approval, G10):**
+1. §4 Gate 0.1 / §14: `opentelemetry-api` **bundled+shaded**, not `provided`; drop "< 100 KB" jar target (≈ few-hundred KB).
+2. §7.1: `end_reason` ∈ {`closed`,`timeout`} only — `TunnelCloseEvent` carries no failure; remove `error` close status.
+3. §6.1: manifest `guacamoleVersion` must be `"1.6.0"` (exact) or `"*"` — `"1.6.*"` is rejected by the loader.
+4. §13.4/L5: no TTL cache needed for protocol/connection-id; keep null-guard → `protocol=unknown` only.
+5. §7.1: drop `guacamole.connection.name` (not reachable from the event) or mark out-of-band.
+6. §9: filter `AuthenticationSuccessEvent.isExistingSession()==true` (re-auth) and `Credentials.isEmpty()` failures (anonymous login-screen hits) to avoid log-record noise.
+7. CLAUDE.md/SPEC env: build target **Java 8** (runtime image is JVM 21; release-8 bytecode loads).
+
+_Exit gate P0 NOT marked passed — awaiting human sign-off (G10)._
