@@ -315,3 +315,26 @@ Consequence: human approved the README compliance claims and PRIVACY.md. Clean-r
   RPM mechanics verified on RHEL9; the jar loads + emits in the live guacamole stack.
   Follow-up requested: add OpenShift + Docker packaging alongside the RPM. Phase 4
   unblocked.
+
+## 2026-07-21 — Gate P4 (load & failure validation)
+Result: PASS (measurement)
+Evidence:
+- **Overhead budget (§15.3): MET with ~30x headroom.** Per-event latency measured in
+  isolation (in-memory SDK, no network/password-hashing), 50 000 connect/close pairs
+  after 20 000 warm-up: p50=0.0051 ms, p99=0.0339 ms, p99.9=0.0659 ms — well under
+  the < 1 ms p99 budget. (`OverheadBenchmarkTest`.)
+- **Series-count independent of session count.** Driving 6 sessions yielded a single
+  `guacamole.session.started` series `{guacamole.protocol=ssh, guacamole.datasource=postgresql}`
+  with value 6 — one series, not one-per-session. Enforced by the type-level
+  cardinality guard (G4, `AttributesTest`).
+- **Failure injection (§15.4) — all clean.** (a) collector killed mid-session (Gate P2);
+  (b) collector **down from start** — guacamole boots, "OpenTelemetry Instrumentation"
+  loads, login succeeds, guacd establishes the SSH session, no OOM, no suppressed
+  errors; (c) exporter throwing on every call — `handleEvent` returns normally
+  (`OtelListenerTest`, G1). A dead/black-holed OTLP endpoint is the connection-refused
+  equivalent of (b).
+- **Registry bounded (G6):** capacity eviction + TTL sweep unit-tested; hard max via
+  `otel.registry.max-entries`.
+Consequence: the acceptance property holds — a telemetry backend failure never affects
+  Guacamole login or session availability. The v0.1.0 tag + GitHub release remain
+  **gated on human approval (G10)** and were not performed.
