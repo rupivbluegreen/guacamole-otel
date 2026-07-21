@@ -51,7 +51,7 @@ jobs:
           docker run --rm -e VERSION="$VERSION" -v "$PWD":/work -w /work/packaging \
             goreleaser/nfpm package --config nfpm.yaml --target /work/dist --packager rpm
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guacamole-otel-packages
           path: |
