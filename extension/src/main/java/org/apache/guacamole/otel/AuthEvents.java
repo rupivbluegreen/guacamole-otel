@@ -91,6 +91,7 @@ public final class AuthEvents {
         logs.logRecordBuilder()
                 .setTimestamp(epochMillis, TimeUnit.MILLISECONDS)
                 .setSeverity(severity)
+                .setSeverityText(severity.name())
                 .setAllAttributes(attrs)
                 .setAttribute(Attributes.EVENT_NAME, eventName)
                 .setBody(body)

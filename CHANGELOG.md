@@ -10,6 +10,16 @@ step (see [`GOVERNANCE.md`](GOVERNANCE.md)).
 
 ## [Unreleased]
 
+### Fixed
+- **Log records now carry `severity_text`** — both emitters (`AuthEvents`,
+  `SessionSpans`) previously set only the numeric severity, never the text. OTLP makes
+  `severity_text` optional, but backends that require it drop such records
+  *silently*: the collector still counts them as sent, the transport still acks
+  the batch, and no error surfaces anywhere, so auth and session evidence simply
+  never arrives. Unlike a missing `service.name` (defaulted to
+  `unknown_service`), a missing severity text is not filled in. `SeverityTextTest`
+  guards every emitted record.
+
 ## [0.2.0] - 2026-07-21
 
 ### Added
