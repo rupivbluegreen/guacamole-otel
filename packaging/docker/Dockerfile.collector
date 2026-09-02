@@ -5,6 +5,6 @@
 # Set OTLP_EXPORTER_ENDPOINT at runtime to your backend. On containers there is no
 # journald; mount container logs and switch the journald receiver to a filelog one,
 # or ship guacd logs to this collector over OTLP — see packaging/openshift/README.md.
-FROM otel/opentelemetry-collector-contrib@sha256:125bdbeb7590cc1952c5b3430ecf14063568980c2c93d5b38676cc0446ed8108
+FROM otel/opentelemetry-collector-contrib@sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc
 COPY collector/otelcol-guacamole.yaml /etc/otelcol/config.yaml
 CMD ["--config=/etc/otelcol/config.yaml"]
